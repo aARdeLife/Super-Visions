@@ -3,28 +3,85 @@
   <head>
     <meta charset="utf-8">
     <title>SuperVision AR</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@aframe/examples/vendor/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.x/three.js/build/ar-threex.js"></script>
+    <style>
+      body { margin: 0; overflow: hidden; }
+      canvas { display: block; }
+    </style>
   </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      embedded
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-    >
-      <a-assets>
-        <a-asset-item id="pol-model" src="https://github.com/aARdeLife/SuperVision/blob/6e7ab011f51b2483b72237297fbffd5e27a470cc/polaris/polforweb%20(3).glb"></a-asset-item>
-      </a-assets>
+  <body>
+    <script>
+      // Set up the renderer, scene, and camera
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
 
-      <a-marker-camera preset="hiro">
-        <a-entity
-          gltf-model="#pol-model"
-          scale="0.05 0.05 0.05"
-          position="0 0.5 0"
-          rotation="0 180 0"
-        ></a-entity>
-      </a-marker-camera>
+      const scene = new THREE.Scene();
+      const camera = new THREE.Camera();
+      scene.add(camera);
 
-      <a-entity camera></a-entity>
-    </a-scene>
+      // Set up AR
+      const arToolkitSource = new THREEx.ArToolkitSource({
+        sourceType: 'webcam',
+      });
+
+      arToolkitSource.init(() => {
+        setTimeout(() => {
+          onResize();
+        }, 2000);
+      });
+
+      window.addEventListener('resize', onResize);
+
+      function onResize() {
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+        if (arToolkitContext.arController) {
+          arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+        }
+      }
+
+      const arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: 'https://ar-js-org.github.io/AR.js/data/camera_para.dat',
+        detectionMode: 'mono',
+      });
+
+      arToolkitContext.init(() => {
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+      });
+
+      // Set up AR marker
+      const arMarker = new THREE.Group();
+      scene.add(arMarker);
+
+      const arMarkerControls = new THREEx.ArMarkerControls(arToolkitContext, arMarker, {
+        type: 'pattern',
+        patternUrl: 'https://ar-js-org.github.io/AR.js/data/data/patt.hiro'
+      });
+
+      // Load the 3D model
+      const loader = new THREE.GLTFLoader();
+      loader.load(https://github.com/aARdeLife/SuperVision/blob/6e7ab011f51b2483b72237297fbffd5e27a470cc/polaris/polforweb%20(3).glb, (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(0.05, 0.05, 0.05);
+        model.rotation.set(0, Math.PI, 0);
+        model.position.set(0, 0.5, 0);
+        arMarker.add(model);
+      });
+
+      // Render loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        if (arToolkitSource.ready) {
+          arToolkitContext.update(arToolkitSource.domElement);
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+    </script>
   </body>
 </html>
