@@ -2,86 +2,40 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>SuperVision AR</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.x/three.js/build/ar-threex.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.x/aframe/build/aframe-ar.js"></script>
     <style>
       body { margin: 0; overflow: hidden; }
       canvas { display: block; }
     </style>
   </head>
   <body>
+    <a-scene embedded arjs="sourceType: webcam; trackingMethod: best;">
+      <a-assets>
+        <a-asset-item id="model" src="https://raw.githubusercontent.com/aARdeLife/SuperVision/6e7ab011f51b2483b72237297fbffd5e27a470cc/polaris/polforweb%20(3).glb"></a-asset-item>
+      </a-assets>
+
+      <a-entity id="modelContainer"></a-entity>
+
+      <a-entity id="cursor" raycaster="objects: .plane;" cursor="rayOrigin: mouse; fuse: false"
+                position="0 0 -1"
+                geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03;"
+                material="color: #0080FF; shader: flat;"></a-entity>
+      <a-camera></a-camera>
+      <a-entity arjs-planes="size: 10; opacity: 0.5; posThreshold: 0.5; processSize: 1"></a-entity>
+    </a-scene>
+
     <script>
-      // Set up the renderer, scene, and camera
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
+      const modelContainer = document.getElementById("modelContainer");
 
-      const scene = new THREE.Scene();
-      const camera = new THREE.Camera();
-      scene.add(camera);
-
-      // Set up AR
-      const arToolkitSource = new THREEx.ArToolkitSource({
-        sourceType: 'webcam',
-      });
-
-      arToolkitSource.init(() => {
-        setTimeout(() => {
-          onResize();
-        }, 2000);
-      });
-
-      window.addEventListener('resize', onResize);
-
-      function onResize() {
-        arToolkitSource.onResizeElement();
-        arToolkitSource.copyElementSizeTo(renderer.domElement);
-        if (arToolkitContext.arController) {
-          arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+      document.querySelector("a-scene").addEventListener("click", (event) => {
+        if (!event.detail.intersection || event.detail.intersection.object.el.classList.contains("plane")) {
+          modelContainer.innerHTML = `
+            <a-entity gltf-model="#model" scale="0.05 0.05 0.05" rotation="0 180 0" position="${event.detail.intersection.point.x} ${event.detail.intersection.point.y} ${event.detail.intersection.point.z}"></a-entity>
+          `;
         }
-      }
-
-      const arToolkitContext = new THREEx.ArToolkitContext({
-        cameraParametersUrl: 'https://ar-js-org.github.io/AR.js/data/camera_para.dat',
-        detectionMode: 'mono',
       });
-
-      arToolkitContext.init(() => {
-        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-      });
-
-      // Set up AR marker
-      const arMarker = new THREE.Group();
-      scene.add(arMarker);
-
-      const arMarkerControls = new THREEx.ArMarkerControls(arToolkitContext, arMarker, {
-        type: 'pattern',
-        patternUrl: 'https://ar-js-org.github.io/AR.js/data/data/patt.hiro'
-      });
-
-      // Load the 3D model
-      const loader = new THREE.GLTFLoader();
-      loader.load('https://raw.githubusercontent.com/aARdeLife/SuperVision/6e7ab011f51b2483b72237297fbffd5e27a470cc/polaris/polforweb%20(3).glb', (gltf) => {
-        const model = gltf.scene;
-        model.scale.set(0.05, 0.05, 0.05);
-        model.rotation.set(0, Math.PI, 0);
-        model.position.set(0, 0.5, 0);
-        arMarker.add(model);
-      });
-
-      // Render loop
-      function animate() {
-        requestAnimationFrame(animate);
-
-        if (arToolkitSource.ready) {
-          arToolkitContext.update(arToolkitSource.domElement);
-        }
-
-        renderer.render(scene, camera);
-      }
-
-      animate();
     </script>
   </body>
 </html>
